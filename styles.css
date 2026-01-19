@@ -245,6 +245,160 @@ body {
     color: #2563eb;
 }
 
+.saved-listings-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+}
+
+.saved-actions {
+    display: flex;
+    gap: 6px;
+}
+
+.saved-count {
+    font-size: 13px;
+    color: #6b7280;
+    font-weight: 500;
+}
+
+.btn-export {
+    padding: 6px 12px;
+    background: #10b981;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-family: inherit;
+}
+
+.btn-export:hover:not(:disabled) {
+    background: #059669;
+    transform: translateY(-1px);
+}
+
+.btn-export:disabled {
+    background: #d1d5db;
+    cursor: not-allowed;
+}
+
+.btn-clear-all {
+    padding: 6px 12px;
+    background: #ef4444;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-family: inherit;
+}
+
+.btn-clear-all:hover:not(:disabled) {
+    background: #dc2626;
+    transform: translateY(-1px);
+}
+
+.btn-clear-all:disabled {
+    background: #d1d5db;
+    cursor: not-allowed;
+}
+
+.saved-listings-container {
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.saved-listing-card {
+    background: white;
+    border: 1px solid #e5e7eb;
+    border-radius: 6px;
+    padding: 12px;
+    margin-bottom: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.saved-listing-card:hover {
+    border-color: #667eea;
+    box-shadow: 0 2px 8px rgba(102, 126, 234, 0.15);
+}
+
+.saved-listing-name {
+    font-size: 14px;
+    font-weight: 600;
+    color: #1f2937;
+    margin-bottom: 4px;
+}
+
+.saved-listing-address {
+    font-size: 12px;
+    color: #6b7280;
+    margin-bottom: 6px;
+}
+
+.saved-listing-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.saved-listing-price {
+    font-size: 13px;
+    font-weight: 600;
+    color: #667eea;
+}
+
+.btn-remove {
+    padding: 4px 10px;
+    background: #ef4444;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-family: inherit;
+}
+
+.btn-remove:hover {
+    background: #dc2626;
+}
+
+.btn-save {
+    padding: 10px 20px;
+    background: #10b981;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-family: inherit;
+    margin-top: 16px;
+    width: 100%;
+}
+
+.btn-save:hover {
+    background: #059669;
+    transform: translateY(-1px);
+}
+
+.btn-save.saved {
+    background: #6b7280;
+}
+
+.btn-save.saved:hover {
+    background: #4b5563;
+}
+
 .info-panel {
     position: absolute;
     top: 0;
@@ -402,4 +556,31 @@ body {
     font-size: 16px;
     font-weight: 700;
     color: #667eea;
+    margin-bottom: 8px;
+}
+
+.popup-btn {
+    width: 100%;
+    padding: 8px 12px;
+    background: #10b981;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-family: inherit;
+}
+
+.popup-btn:hover {
+    background: #059669;
+}
+
+.popup-btn.saved {
+    background: #6b7280;
+}
+
+.popup-btn.saved:hover {
+    background: #4b5563;
 }

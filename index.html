@@ -73,8 +73,17 @@
                 </div>
                 
                 <div class="feature-section">
-                    <h3>Listings</h3>
-                    <p class="placeholder">Listing list coming soon...</p>
+                    <h3>Saved Listings</h3>
+                    <div class="saved-listings-header">
+                        <span id="saved-count" class="saved-count">0 saved</span>
+                        <div class="saved-actions">
+                            <button id="clear-all-btn" class="btn-clear-all" disabled>Clear All</button>
+                            <button id="export-btn" class="btn-export" disabled>Export CSV</button>
+                        </div>
+                    </div>
+                    <div id="saved-listings-container" class="saved-listings-container">
+                        <p class="placeholder">No saved listings yet. Click on a pin and add it to your list.</p>
+                    </div>
                 </div>
             </div>
             

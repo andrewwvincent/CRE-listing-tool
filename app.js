@@ -2,6 +2,8 @@ let map;
 let markers = [];
 let listings = [];
 let searchMarker = null;
+let savedListings = [];
+let currentListing = null;
 let filters = {
     state: '',
     priceMin: null,
@@ -78,15 +80,36 @@ function displayMarkers() {
             
             const marker = L.marker([lat, lon], { icon: icon }).addTo(map);
             
+            const isSaved = isListingSaved(listing);
+            const buttonText = isSaved ? 'Remove from List' : 'Add to List';
+            const buttonClass = isSaved ? 'popup-btn saved' : 'popup-btn';
+            
             const popupContent = `
                 <div class="popup-title">${listing['Listing Name']}</div>
                 <div class="popup-address">${listing['Listing Address']}</div>
                 <div class="popup-price">${listing.Price}</div>
+                <button class="${buttonClass}" data-listing-name="${listing['Listing Name']}">${buttonText}</button>
             `;
             marker.bindPopup(popupContent);
             
             marker.on('click', function() {
                 showInfoPanel(listing);
+            });
+            
+            marker.on('popupopen', function() {
+                const popupBtn = document.querySelector('.popup-btn');
+                if (popupBtn) {
+                    popupBtn.addEventListener('click', function(e) {
+                        e.stopPropagation();
+                        const listingName = this.dataset.listingName;
+                        const listing = listings.find(l => l['Listing Name'] === listingName);
+                        if (listing) {
+                            toggleSaveListing(listing);
+                            displayMarkers();
+                            map.closePopup();
+                        }
+                    });
+                }
             });
             
             markers.push(marker);
@@ -130,6 +153,7 @@ function updateResultsCount(count) {
 }
 
 function showInfoPanel(listing) {
+    currentListing = listing;
     const infoPanel = document.getElementById('info-panel');
     const infoContent = document.getElementById('info-content');
     
@@ -329,10 +353,134 @@ function setupFilterListeners() {
     });
 }
 
+function isListingSaved(listing) {
+    return savedListings.some(saved => saved['Listing Name'] === listing['Listing Name']);
+}
+
+function toggleSaveListing(listing) {
+    if (isListingSaved(listing)) {
+        removeSavedListing(listing);
+    } else {
+        addSavedListing(listing);
+    }
+}
+
+function addSavedListing(listing) {
+    if (!isListingSaved(listing)) {
+        savedListings.push(listing);
+        updateSavedListingsDisplay();
+    }
+}
+
+function removeSavedListing(listing) {
+    savedListings = savedListings.filter(saved => saved['Listing Name'] !== listing['Listing Name']);
+    updateSavedListingsDisplay();
+}
+
+function clearAllSavedListings() {
+    if (savedListings.length > 0 && confirm('Are you sure you want to clear all saved listings?')) {
+        savedListings = [];
+        updateSavedListingsDisplay();
+        displayMarkers();
+    }
+}
+
+function updateSavedListingsDisplay() {
+    const container = document.getElementById('saved-listings-container');
+    const countEl = document.getElementById('saved-count');
+    const exportBtn = document.getElementById('export-btn');
+    const clearAllBtn = document.getElementById('clear-all-btn');
+    
+    countEl.textContent = `${savedListings.length} saved`;
+    
+    if (savedListings.length === 0) {
+        container.innerHTML = '<p class="placeholder">No saved listings yet. Click on a pin and add it to your list.</p>';
+        exportBtn.disabled = true;
+        clearAllBtn.disabled = true;
+    } else {
+        exportBtn.disabled = false;
+        clearAllBtn.disabled = false;
+        container.innerHTML = savedListings.map(listing => `
+            <div class="saved-listing-card" data-listing-name="${listing['Listing Name']}">
+                <div class="saved-listing-name">${listing['Listing Name']}</div>
+                <div class="saved-listing-address">${listing['Listing Address']}</div>
+                <div class="saved-listing-footer">
+                    <div class="saved-listing-price">${listing.Price}</div>
+                    <button class="btn-remove" data-listing-name="${listing['Listing Name']}">Remove</button>
+                </div>
+            </div>
+        `).join('');
+        
+        document.querySelectorAll('.saved-listing-card').forEach(card => {
+            card.addEventListener('click', function(e) {
+                if (!e.target.classList.contains('btn-remove')) {
+                    const listingName = this.dataset.listingName;
+                    const listing = savedListings.find(l => l['Listing Name'] === listingName);
+                    if (listing) {
+                        const lat = parseFloat(listing.Lat);
+                        const lon = parseFloat(listing.Lon);
+                        map.setView([lat, lon], 16);
+                        showInfoPanel(listing);
+                    }
+                }
+            });
+        });
+        
+        document.querySelectorAll('.btn-remove').forEach(btn => {
+            btn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                const listingName = this.dataset.listingName;
+                const listing = savedListings.find(l => l['Listing Name'] === listingName);
+                if (listing) {
+                    removeSavedListing(listing);
+                    displayMarkers();
+                }
+            });
+        });
+    }
+}
+
+function exportToCSV() {
+    if (savedListings.length === 0) return;
+    
+    const headers = ['Status', 'Listing Name', 'Listing Address', 'Market', 'Lat', 'Lon', 'Price', 'Size', 'Broker Name', 'Broker Email', 'Broker Phone', 'Listing Website'];
+    
+    const csvContent = [
+        headers.join(','),
+        ...savedListings.map(listing => [
+            listing.Status,
+            `"${listing['Listing Name']}"`,
+            `"${listing['Listing Address']}"`,
+            listing.Market,
+            listing.Lat,
+            listing.Lon,
+            `"${listing.Price}"`,
+            listing.Size,
+            listing['Broker Name'],
+            listing['Broker Email'],
+            listing['Broker Phone'],
+            listing['Listing Website']
+        ].join(','))
+    ].join('\n');
+    
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    
+    link.setAttribute('href', url);
+    link.setAttribute('download', `saved_listings_${new Date().toISOString().split('T')[0]}.csv`);
+    link.style.visibility = 'hidden';
+    
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+}
+
 document.addEventListener('DOMContentLoaded', function() {
     initMap();
     loadListings();
     setupFilterListeners();
+    updateSavedListingsDisplay();
     
     document.getElementById('close-info').addEventListener('click', hideInfoPanel);
     
@@ -343,4 +491,8 @@ document.addEventListener('DOMContentLoaded', function() {
             handleAddressSearch();
         }
     });
+    
+    document.getElementById('export-btn').addEventListener('click', exportToCSV);
+    
+    document.getElementById('clear-all-btn').addEventListener('click', clearAllSavedListings);
 });
