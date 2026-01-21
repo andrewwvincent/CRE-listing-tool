@@ -64,6 +64,50 @@ body {
     color: #1f2937;
 }
 
+.data-filters-applied {
+    background: #f0f9ff;
+    border: 1px solid #bae6fd;
+    border-radius: 8px;
+    padding: 16px;
+    margin-bottom: 24px;
+}
+
+.data-filters-applied h3 {
+    color: #0369a1;
+    margin-bottom: 12px;
+}
+
+.applied-filters-info {
+    font-size: 13px;
+}
+
+.filter-description {
+    color: #475569;
+    margin-bottom: 12px;
+    line-height: 1.5;
+}
+
+.applied-filters-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.applied-filters-list li {
+    padding: 6px 12px;
+    background: white;
+    border-left: 3px solid #0ea5e9;
+    margin-bottom: 6px;
+    border-radius: 4px;
+    color: #1e293b;
+    font-size: 13px;
+}
+
+.applied-filters-list li strong {
+    color: #0369a1;
+    font-weight: 600;
+}
+
 .placeholder {
     font-size: 14px;
     color: #6b7280;
@@ -243,6 +287,44 @@ body {
 
 .search-message.info {
     color: #2563eb;
+}
+
+.layer-toggles {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.layer-toggle {
+    display: flex;
+    align-items: center;
+    padding: 10px 12px;
+    background: white;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.layer-toggle:hover {
+    border-color: #667eea;
+    background: #f9fafb;
+}
+
+.layer-checkbox {
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+    margin-right: 10px;
+    accent-color: #667eea;
+}
+
+.layer-label {
+    font-size: 14px;
+    font-weight: 500;
+    color: #374151;
+    cursor: pointer;
+    user-select: none;
 }
 
 .saved-listings-header {
@@ -583,4 +665,149 @@ body {
 
 .popup-btn.saved:hover {
     background: #4b5563;
+}
+
+.popup-suite-count {
+    font-size: 12px;
+    color: #667eea;
+    font-weight: 600;
+    margin-bottom: 8px;
+}
+
+.popup-suites-label {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    color: #6b7280;
+    margin-bottom: 6px;
+    letter-spacing: 0.5px;
+}
+
+.popup-suites-list {
+    max-height: 200px;
+    overflow-y: auto;
+    margin-top: 8px;
+}
+
+.suite-item {
+    padding: 8px 10px;
+    background: #f9fafb;
+    border: 1px solid #e5e7eb;
+    border-radius: 6px;
+    margin-bottom: 6px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.suite-item:hover {
+    background: #f3f4f6;
+    border-color: #667eea;
+    transform: translateX(2px);
+}
+
+.suite-item.active {
+    background: #ede9fe;
+    border-color: #667eea;
+    box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.1);
+}
+
+.suite-item.saved {
+    border-left: 3px solid #10b981;
+}
+
+.suite-size {
+    font-size: 13px;
+    font-weight: 600;
+    color: #1f2937;
+    margin-bottom: 2px;
+}
+
+.suite-price {
+    font-size: 12px;
+    font-weight: 600;
+    color: #667eea;
+    margin-bottom: 2px;
+}
+
+.suite-status {
+    font-size: 11px;
+    color: #6b7280;
+    text-transform: uppercase;
+}
+
+.popup-size {
+    font-size: 13px;
+    color: #374151;
+    margin-bottom: 8px;
+}
+
+.popup-instruction {
+    font-size: 11px;
+    color: #667eea;
+    font-style: italic;
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px solid #e5e7eb;
+}
+
+.suite-selector-label {
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    color: #6b7280;
+    margin: 16px 0 8px 0;
+    letter-spacing: 0.5px;
+}
+
+.suite-selector-list {
+    max-height: 300px;
+    overflow-y: auto;
+    margin-top: 8px;
+}
+
+.suite-selector-item {
+    padding: 12px;
+    background: #f9fafb;
+    border: 2px solid #e5e7eb;
+    border-radius: 6px;
+    margin-bottom: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.suite-selector-item:hover {
+    background: #f3f4f6;
+    border-color: #667eea;
+    transform: translateX(3px);
+}
+
+.suite-selector-item.active {
+    background: #ede9fe;
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.suite-selector-item.saved {
+    border-left: 4px solid #10b981;
+}
+
+.suite-selector-size {
+    font-size: 14px;
+    font-weight: 700;
+    color: #1f2937;
+    margin-bottom: 4px;
+}
+
+.suite-selector-price {
+    font-size: 13px;
+    font-weight: 600;
+    color: #667eea;
+    margin-bottom: 4px;
+}
+
+.suite-selector-status {
+    font-size: 11px;
+    color: #6b7280;
+    text-transform: uppercase;
+    font-weight: 500;
 }

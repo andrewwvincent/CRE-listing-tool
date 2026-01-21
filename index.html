@@ -16,6 +16,17 @@
             </div>
             
             <div class="panel-content">
+                <div class="feature-section data-filters-applied">
+                    <h3>Data Filters Applied</h3>
+                    <div class="applied-filters-info">
+                        <p class="filter-description">This dataset has been pre-filtered with the following demographic criteria:</p>
+                        <ul class="applied-filters-list">
+                            <li><strong>ES/ES+:</strong> ≥ 2,500</li>
+                            <li><strong>WS:</strong> ≥ 2,500</li>
+                        </ul>
+                    </div>
+                </div>
+                
                 <div class="feature-section">
                     <h3>Filters</h3>
                     
@@ -23,6 +34,16 @@
                         <label class="filter-label">State</label>
                         <select id="state-filter" class="filter-select">
                             <option value="">All States</option>
+                        </select>
+                    </div>
+                    
+                    <div class="filter-group">
+                        <label class="filter-label">Status</label>
+                        <select id="status-filter" class="filter-select">
+                            <option value="">All Statuses</option>
+                            <option value="AVAILABLE" selected>Available</option>
+                            <option value="LEASED">Leased</option>
+                            <option value="WITHDRAWN">Withdrawn</option>
                         </select>
                     </div>
                     
@@ -69,6 +90,38 @@
                             <button id="search-btn" class="btn-search">Search</button>
                         </div>
                         <div id="search-message" class="search-message"></div>
+                    </div>
+                </div>
+                
+                <div class="feature-section">
+                    <h3>Demographic Heatmaps</h3>
+                    <div id="demographic-status" style="margin-bottom: 12px; padding: 8px; background: #f3f4f6; border-radius: 6px; font-size: 12px; color: #6b7280; text-align: center;">
+                        Select a state to load demographic data
+                    </div>
+                    <div class="layer-toggles">
+                        <label class="layer-toggle">
+                            <input type="checkbox" id="toggle-demographic-es" class="layer-checkbox">
+                            <span class="layer-label">ES (Private Only)</span>
+                        </label>
+                        <label class="layer-toggle">
+                            <input type="checkbox" id="toggle-demographic-es-plus" class="layer-checkbox">
+                            <span class="layer-label">ES+ (Public+Private)</span>
+                        </label>
+                    </div>
+                    <div class="filter-info" style="margin-top: 12px; padding: 8px; background: #f0f9ff; border-radius: 6px; font-size: 11px; color: #0369a1;">
+                        <strong>Filter:</strong> ES/ES+ ≥2500 & WS ≥2500<br>
+                        <strong>Colors:</strong> Red (both ≥75%), Orange (both ≥50%), Yellow (other), Blue (either ≤25%)
+                    </div>
+                </div>
+                
+                <div class="feature-section">
+                    <h3>Demographic Filter</h3>
+                    <label class="layer-toggle">
+                        <input type="checkbox" id="toggle-demographic-filter" class="layer-checkbox">
+                        <span class="layer-label">Show Only Qualifying Listings</span>
+                    </label>
+                    <div class="filter-info" style="margin-top: 8px; padding: 8px; background: #fef3c7; border-radius: 6px; font-size: 11px; color: #92400e;">
+                        Shows listings in block groups with ES+ ≥2500 & WS ≥2500
                     </div>
                 </div>
                 
