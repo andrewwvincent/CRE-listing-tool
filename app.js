@@ -11,6 +11,23 @@ let demographicGeometryData = {};
 let loadedDemographicCounties = new Set();
 let demographicFilterEnabled = false;
 let countyMaxValues = {};
+let zoningLayer = null;
+let zoningEnabled = false;
+let currentZoningState = null;
+let schoolPermissions = {};
+let zoningColorMode = 'zone_type'; // 'zone_type' or 'school_permission'
+let zoningFeatures = []; // Store zoning features for point-in-polygon checks
+const ZONEOMICS_API_KEY = '58fca2f84d43ab1455275525caed295b68a632ee';
+
+// Zoneomics tile layer bounds for different states/cities
+const ZONING_TILE_BOUNDS = {
+    'TX': {
+        // Austin/Travis County area bounds
+        bounds: [[30.05, -98.0], [30.55, -97.4]],
+        center: [30.2672, -97.7431],
+        zoom: 12
+    }
+};
 let filters = {
     state: '',
     status: 'AVAILABLE',
@@ -18,7 +35,8 @@ let filters = {
     priceMax: null,
     sizeMin: null,
     sizeMax: null,
-    demographics: false
+    demographics: false,
+    zoningPermission: null // null, 'permitted', or 'permitted_conditional'
 };
 
 function initMap() {
@@ -304,7 +322,7 @@ async function loadDemographicDataForCounty(stateCode, countyCode, countyName) {
         
         loadedDemographicCounties.add(countyCode);
         console.log(`  Loaded ${countyName}: ${scoresData.length} block groups (ES max: ${maxES.toFixed(0)}, ES+ max: ${maxESPlus.toFixed(0)}, WS max: ${maxWS.toFixed(0)})`);
-        
+
     } catch (error) {
         console.error(`Error loading demographic data for ${countyName}:`, error);
     }
@@ -313,7 +331,7 @@ async function loadDemographicDataForCounty(stateCode, countyCode, countyName) {
 function getDemographicFeatureStyle(feature, mode) {
     const geoid = feature.properties.GEOID;
     const data = demographicScoreData[geoid];
-    
+
     if (!data) {
         return {
             fillColor: '#9ca3af',
@@ -323,11 +341,11 @@ function getDemographicFeatureStyle(feature, mode) {
             fillOpacity: 0
         };
     }
-    
+
     // Get the enrollment score based on mode
     const enrollmentScore = mode === 'private' ? data.enrollmentScore : data.enrollmentScorePlus;
     const wealthScore = data.wealthScore;
-    
+
     // Filter: only show block groups with ES/ES+ >= 2500 AND WS >= 2500
     if (!enrollmentScore || enrollmentScore < 2500 || !wealthScore || wealthScore < 2500) {
         return {
@@ -338,11 +356,11 @@ function getDemographicFeatureStyle(feature, mode) {
             fillOpacity: 0
         };
     }
-    
+
     // Get county max values for relative scoring
     const countyCode = data.countyCode;
     const maxValues = countyMaxValues[countyCode];
-    
+
     if (!maxValues) {
         // Fallback if max values not available
         return {
@@ -353,19 +371,19 @@ function getDemographicFeatureStyle(feature, mode) {
             fillOpacity: 0.5
         };
     }
-    
+
     // Calculate relative scores (as percentage of county max)
     const maxEnrollment = mode === 'private' ? maxValues.maxES : maxValues.maxESPlus;
     const relES = (enrollmentScore / maxEnrollment) * 100;
     const relWS = (wealthScore / maxValues.maxWS) * 100;
-    
+
     // Apply color logic based on relative scores:
     // Red: Both Rel ES and Rel WS >= 75%
     // Blue: Either Rel ES or Rel WS <= 25%
     // Orange: Both Rel ES and Rel WS >= 50%
     // Yellow: All other combinations
     let fillColor;
-    
+
     if (relES >= 75 && relWS >= 75) {
         fillColor = '#ef4444'; // Red
     } else if (relES <= 25 || relWS <= 25) {
@@ -375,7 +393,7 @@ function getDemographicFeatureStyle(feature, mode) {
     } else {
         fillColor = '#eab308'; // Yellow
     }
-    
+
     return {
         fillColor: fillColor,
         weight: 0,
@@ -479,6 +497,298 @@ function isListingInQualifyingBlockGroup(listing) {
     }
     
     return false;
+}
+
+// Zoning Layer Functions
+
+// Check if a listing is in a zone with required school permission
+function isListingInPermittedZone(listing, filterType) {
+    if (!zoningFeatures || zoningFeatures.length === 0) return true; // No zoning data, don't filter
+
+    const lat = parseFloat(listing.Lat);
+    const lon = parseFloat(listing.Lon);
+
+    if (isNaN(lat) || isNaN(lon)) return false;
+
+    // Find which zone contains this point
+    for (const feature of zoningFeatures) {
+        if (isPointInPolygon([lon, lat], feature.geometry)) {
+            const zoneCode = feature.properties.zone_code;
+            const perm = schoolPermissions[zoneCode];
+
+            if (!perm) return false; // Unknown zone, exclude
+
+            if (filterType === 'permitted') {
+                return perm.permission === 'P';
+            } else if (filterType === 'permitted_conditional') {
+                return perm.permission === 'P' || perm.permission === 'C';
+            }
+        }
+    }
+
+    // Point not in any zone - exclude from results
+    return false;
+}
+
+// Load school permissions data
+async function loadSchoolPermissions() {
+    try {
+        const response = await fetch('zone_school_permissions.json');
+        if (!response.ok) {
+            console.warn('School permissions data not found');
+            return;
+        }
+        const data = await response.json();
+
+        // Build lookup by zone_code
+        data.zones.forEach(zone => {
+            schoolPermissions[zone.zone_code] = {
+                permission: zone.school_permission,
+                label: zone.school_permission_label,
+                detail: zone.school_permission_detail
+            };
+        });
+
+        console.log(`Loaded school permissions for ${Object.keys(schoolPermissions).length} zones`);
+    } catch (error) {
+        console.error('Error loading school permissions:', error);
+    }
+}
+
+// Get color based on school permission status
+function getSchoolPermissionColor(zoneCode) {
+    const permission = schoolPermissions[zoneCode];
+    if (!permission) return '#9ca3af'; // Gray - Unknown
+
+    switch (permission.permission) {
+        case 'P': return '#22c55e'; // Green - Permitted by Right
+        case 'C': return '#f59e0b'; // Amber - Conditional Use
+        case 'X': return '#ef4444'; // Red - Prohibited
+        default: return '#9ca3af';  // Gray - Unknown
+    }
+}
+
+function getZoneColor(zoneType, zoneSubType, zoneName) {
+    // Normalize to lowercase for comparison
+    const type = (zoneType || '').toLowerCase();
+    const subType = (zoneSubType || '').toLowerCase();
+    const name = (zoneName || '').toLowerCase();
+    
+    // Check for residential patterns
+    if (type.includes('residential') || name.includes('residence') || name.includes('family') || 
+        name.includes('sf-') || name.includes('single') || subType.includes('residential')) {
+        return '#3b82f6'; // Blue
+    }
+    
+    // Check for commercial patterns
+    if (type.includes('commercial') || name.includes('commercial') || name.includes('cs-') || 
+        name.includes('retail') || name.includes('office') || subType.includes('commercial')) {
+        return '#ef4444'; // Red
+    }
+    
+    // Check for industrial patterns
+    if (type.includes('industrial') || name.includes('industrial') || name.includes('li-') || 
+        name.includes('manufacturing') || subType.includes('industrial')) {
+        return '#f97316'; // Orange
+    }
+    
+    // Check for mixed use patterns
+    if (type.includes('mixed') || name.includes('mixed') || name.includes('mu-') || 
+        subType.includes('mixed')) {
+        return '#8b5cf6'; // Purple
+    }
+    
+    // Check for agricultural patterns
+    if (type.includes('agricultural') || name.includes('agricultural') || name.includes('farm') || 
+        subType.includes('agricultural')) {
+        return '#22c55e'; // Green
+    }
+    
+    // Check for open space/parks patterns
+    if (type.includes('open') || type.includes('park') || name.includes('park') || 
+        name.includes('open space') || subType.includes('open')) {
+        return '#10b981'; // Emerald
+    }
+    
+    // Default for unknown/other
+    return '#9ca3af'; // Gray
+}
+
+async function loadZoningLayerForState(stateCode) {
+    console.log('loadZoningLayerForState called with:', stateCode);
+
+    if (!stateCode) {
+        console.log('No state selected for zoning');
+        return;
+    }
+
+    // Only load for TX (we only have Austin data)
+    if (stateCode !== 'TX') {
+        console.log('State is not TX, skipping zoning load');
+        const statusEl = document.getElementById('zoning-status');
+        statusEl.textContent = 'Zoning data only available for TX';
+        statusEl.style.backgroundColor = '#fee2e2';
+        statusEl.style.color = '#991b1b';
+        return;
+    }
+
+    // Check if already loaded
+    if (currentZoningState === stateCode && zoningLayer) {
+        console.log(`Zoning data for ${stateCode} already loaded`);
+        return;
+    }
+
+    // Remove existing layer
+    if (zoningLayer) {
+        console.log('Removing existing zoning layer');
+        map.removeLayer(zoningLayer);
+        zoningLayer = null;
+    }
+
+    console.log(`Loading zoning data for ${stateCode}...`);
+
+    const statusEl = document.getElementById('zoning-status');
+    statusEl.textContent = 'Loading zoning data...';
+    statusEl.style.backgroundColor = '#fef3c7';
+    statusEl.style.color = '#92400e';
+
+    try {
+        // Load the GeoJSON file with zoning for qualifying block groups in Travis & Williamson counties
+        const response = await fetch('austin_area_zoning.geojson');
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const zoningData = await response.json();
+
+        console.log(`Loaded ${zoningData.features.length} zoning features`);
+
+        // Store features for point-in-polygon checks
+        zoningFeatures = zoningData.features;
+
+        // Create GeoJSON layer with styling
+        zoningLayer = L.geoJSON(zoningData, {
+            style: function(feature) {
+                const props = feature.properties;
+                let color;
+                if (zoningColorMode === 'school_permission') {
+                    color = getSchoolPermissionColor(props.zone_code);
+                } else {
+                    color = getZoneColor(props.zone_type, props.zone_sub_type, props.zone_name);
+                }
+
+                return {
+                    fillColor: color,
+                    weight: 0,
+                    opacity: 0,
+                    color: 'transparent',
+                    fillOpacity: 0.5
+                };
+            },
+            onEachFeature: function(feature, layer) {
+                const props = feature.properties;
+                const schoolPerm = schoolPermissions[props.zone_code];
+                const schoolPermHtml = schoolPerm ? `
+                        <hr style="margin: 8px 0; border: none; border-top: 1px solid #e5e7eb;">
+                        <p style="margin: 4px 0;"><strong>Private K-12 School:</strong>
+                            <span style="color: ${schoolPerm.permission === 'P' ? '#16a34a' : schoolPerm.permission === 'C' ? '#d97706' : schoolPerm.permission === 'X' ? '#dc2626' : '#6b7280'}; font-weight: 600;">
+                                ${schoolPerm.label}
+                            </span>
+                        </p>
+                        <p style="margin: 4px 0; font-size: 0.85em; color: #6b7280;">${schoolPerm.detail}</p>
+                ` : '';
+
+                layer.bindPopup(`
+                    <div style="min-width: 200px;">
+                        <h3 style="margin: 0 0 8px 0; font-size: 1rem;">Zoning Information</h3>
+                        <p style="margin: 4px 0;"><strong>Zone Code:</strong> ${props.zone_code || 'N/A'}</p>
+                        <p style="margin: 4px 0;"><strong>Zone Name:</strong> ${props.zone_name || 'N/A'}</p>
+                        <p style="margin: 4px 0;"><strong>Zone Type:</strong> ${props.zone_type || 'N/A'}</p>
+                        <p style="margin: 4px 0;"><strong>Sub Type:</strong> ${props.zone_sub_type || 'N/A'}</p>
+                        ${schoolPermHtml}
+                    </div>
+                `);
+            }
+        });
+
+        currentZoningState = stateCode;
+
+        // Show layer if toggle is enabled
+        if (zoningEnabled) {
+            map.addLayer(zoningLayer);
+        }
+
+        console.log(`Zoning layer created for ${stateCode}`);
+
+        // Update status
+        statusEl.textContent = `✓ Zoning loaded (${zoningData.features.length.toLocaleString()} zones - Travis & Williamson)`;
+        statusEl.style.backgroundColor = '#dcfce7';
+        statusEl.style.color = '#166534';
+    } catch (error) {
+        console.error('Error loading zoning data:', error);
+        statusEl.textContent = 'Error loading zoning data';
+        statusEl.style.backgroundColor = '#fee2e2';
+        statusEl.style.color = '#991b1b';
+    }
+}
+
+function toggleZoningLayer(show) {
+    zoningEnabled = show;
+
+    const legend = document.getElementById('zoning-legend');
+    const schoolLegend = document.getElementById('school-permission-legend');
+
+    if (show && zoningLayer) {
+        map.addLayer(zoningLayer);
+        updateZoningLegendVisibility();
+    } else if (zoningLayer) {
+        map.removeLayer(zoningLayer);
+        if (legend) legend.style.display = 'none';
+        if (schoolLegend) schoolLegend.style.display = 'none';
+    }
+}
+
+function setZoningColorMode(mode) {
+    zoningColorMode = mode;
+
+    // Refresh the zoning layer styling
+    if (zoningLayer) {
+        zoningLayer.eachLayer(function(layer) {
+            const props = layer.feature.properties;
+            let color;
+            if (zoningColorMode === 'school_permission') {
+                color = getSchoolPermissionColor(props.zone_code);
+            } else {
+                color = getZoneColor(props.zone_type, props.zone_sub_type, props.zone_name);
+            }
+            layer.setStyle({
+                fillColor: color,
+                weight: 0,
+                opacity: 0,
+                color: 'transparent',
+                fillOpacity: 0.5
+            });
+        });
+    }
+
+    updateZoningLegendVisibility();
+}
+
+function updateZoningLegendVisibility() {
+    const legend = document.getElementById('zoning-legend');
+    const schoolLegend = document.getElementById('school-permission-legend');
+
+    if (zoningEnabled) {
+        if (zoningColorMode === 'school_permission') {
+            if (legend) legend.style.display = 'none';
+            if (schoolLegend) schoolLegend.style.display = 'block';
+        } else {
+            if (legend) legend.style.display = 'block';
+            if (schoolLegend) schoolLegend.style.display = 'none';
+        }
+    } else {
+        if (legend) legend.style.display = 'none';
+        if (schoolLegend) schoolLegend.style.display = 'none';
+    }
 }
 
 function isPointInPolygon(point, polygon) {
@@ -634,7 +944,12 @@ function applyFilters() {
         if (filters.demographics && Object.keys(demographicScoreData).length > 0) {
             if (!isListingInQualifyingBlockGroup(listing)) return false;
         }
-        
+
+        // Zoning permission filter: only show listings in permitted zones
+        if (filters.zoningPermission && zoningFeatures.length > 0) {
+            if (!isListingInPermittedZone(listing, filters.zoningPermission)) return false;
+        }
+
         return true;
     });
     
@@ -917,6 +1232,11 @@ function setupFilterListeners() {
             }
         }
         
+        // Load zoning data for selected state
+        if (filters.state && filters.state !== currentZoningState) {
+            await loadZoningLayerForState(filters.state);
+        }
+        
         displayMarkers();
     });
     
@@ -1065,11 +1385,14 @@ function exportToCSV() {
     document.body.removeChild(link);
 }
 
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', async function() {
     initMap();
     loadListings();
     setupFilterListeners();
     updateSavedListingsDisplay();
+
+    // Load school permissions data
+    await loadSchoolPermissions();
     
     document.getElementById('close-info').addEventListener('click', hideInfoPanel);
     
@@ -1098,4 +1421,51 @@ document.addEventListener('DOMContentLoaded', function() {
         filters.demographics = e.target.checked;
         displayMarkers();
     });
+    
+    // Zoning layer control
+    document.getElementById('toggle-zoning').addEventListener('change', function(e) {
+        toggleZoningLayer(e.target.checked);
+    });
+
+    // Zoning color mode radio buttons
+    document.querySelectorAll('input[name="zoning-color-mode"]').forEach(function(radio) {
+        radio.addEventListener('change', function(e) {
+            setZoningColorMode(e.target.value);
+        });
+    });
+
+    // Zoning permission filter buttons
+    document.getElementById('filter-permitted-only').addEventListener('click', function() {
+        filters.zoningPermission = 'permitted';
+        updateZoningFilterStatus();
+        displayMarkers();
+    });
+
+    document.getElementById('filter-permitted-conditional').addEventListener('click', function() {
+        filters.zoningPermission = 'permitted_conditional';
+        updateZoningFilterStatus();
+        displayMarkers();
+    });
+
+    document.getElementById('filter-zoning-clear').addEventListener('click', function() {
+        filters.zoningPermission = null;
+        updateZoningFilterStatus();
+        displayMarkers();
+    });
 });
+
+function updateZoningFilterStatus() {
+    const statusEl = document.getElementById('zoning-filter-status');
+    if (!statusEl) return;
+
+    if (filters.zoningPermission === 'permitted') {
+        statusEl.textContent = 'Showing listings in Permitted zones only';
+        statusEl.style.fontWeight = '600';
+    } else if (filters.zoningPermission === 'permitted_conditional') {
+        statusEl.textContent = 'Showing listings in Permitted or Conditional zones';
+        statusEl.style.fontWeight = '600';
+    } else {
+        statusEl.textContent = '';
+        statusEl.style.fontWeight = 'normal';
+    }
+}

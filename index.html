@@ -126,6 +126,91 @@
                 </div>
                 
                 <div class="feature-section">
+                    <h3>Zoning Layer</h3>
+                    <div id="zoning-status" style="margin-bottom: 12px; padding: 8px; background: #f3f4f6; border-radius: 6px; font-size: 12px; color: #6b7280; text-align: center;">
+                        Select a state to load zoning data
+                    </div>
+                    <label class="layer-toggle">
+                        <input type="checkbox" id="toggle-zoning" class="layer-checkbox">
+                        <span class="layer-label">Show Zoning Layer</span>
+                    </label>
+
+                    <div style="margin-top: 12px; padding: 8px; background: #f9fafb; border-radius: 6px;">
+                        <div style="font-weight: 600; margin-bottom: 8px; font-size: 12px; color: #374151;">Color By:</div>
+                        <label style="display: flex; align-items: center; margin-bottom: 6px; cursor: pointer;">
+                            <input type="radio" name="zoning-color-mode" value="zone_type" checked style="margin-right: 8px;">
+                            <span style="font-size: 12px;">Zone Type</span>
+                        </label>
+                        <label style="display: flex; align-items: center; cursor: pointer;">
+                            <input type="radio" name="zoning-color-mode" value="school_permission" style="margin-right: 8px;">
+                            <span style="font-size: 12px;">Private K-12 School Permission</span>
+                        </label>
+                    </div>
+
+                    <div id="zoning-legend" style="margin-top: 12px; padding: 8px; background: #f9fafb; border-radius: 6px; font-size: 11px; display: none;">
+                        <div style="font-weight: 600; margin-bottom: 6px; color: #374151;">Zone Type Colors:</div>
+                        <div style="display: flex; align-items: center; margin: 3px 0;">
+                            <div style="width: 16px; height: 16px; background: #3b82f6; border-radius: 3px; margin-right: 6px;"></div>
+                            <span>Residential</span>
+                        </div>
+                        <div style="display: flex; align-items: center; margin: 3px 0;">
+                            <div style="width: 16px; height: 16px; background: #ef4444; border-radius: 3px; margin-right: 6px;"></div>
+                            <span>Commercial</span>
+                        </div>
+                        <div style="display: flex; align-items: center; margin: 3px 0;">
+                            <div style="width: 16px; height: 16px; background: #f97316; border-radius: 3px; margin-right: 6px;"></div>
+                            <span>Industrial</span>
+                        </div>
+                        <div style="display: flex; align-items: center; margin: 3px 0;">
+                            <div style="width: 16px; height: 16px; background: #8b5cf6; border-radius: 3px; margin-right: 6px;"></div>
+                            <span>Mixed Use</span>
+                        </div>
+                        <div style="display: flex; align-items: center; margin: 3px 0;">
+                            <div style="width: 16px; height: 16px; background: #22c55e; border-radius: 3px; margin-right: 6px;"></div>
+                            <span>Agricultural</span>
+                        </div>
+                        <div style="display: flex; align-items: center; margin: 3px 0;">
+                            <div style="width: 16px; height: 16px; background: #10b981; border-radius: 3px; margin-right: 6px;"></div>
+                            <span>Open Space/Parks</span>
+                        </div>
+                        <div style="display: flex; align-items: center; margin: 3px 0;">
+                            <div style="width: 16px; height: 16px; background: #9ca3af; border-radius: 3px; margin-right: 6px;"></div>
+                            <span>Other/Unknown</span>
+                        </div>
+                    </div>
+
+                    <div id="school-permission-legend" style="margin-top: 12px; padding: 8px; background: #f9fafb; border-radius: 6px; font-size: 11px; display: none;">
+                        <div style="font-weight: 600; margin-bottom: 6px; color: #374151;">Private K-12 School Permission:</div>
+                        <div style="display: flex; align-items: center; margin: 3px 0;">
+                            <div style="width: 16px; height: 16px; background: #22c55e; border-radius: 3px; margin-right: 6px;"></div>
+                            <span>Permitted by Right</span>
+                        </div>
+                        <div style="display: flex; align-items: center; margin: 3px 0;">
+                            <div style="width: 16px; height: 16px; background: #f59e0b; border-radius: 3px; margin-right: 6px;"></div>
+                            <span>Conditional Use (requires permit)</span>
+                        </div>
+                        <div style="display: flex; align-items: center; margin: 3px 0;">
+                            <div style="width: 16px; height: 16px; background: #ef4444; border-radius: 3px; margin-right: 6px;"></div>
+                            <span>Prohibited</span>
+                        </div>
+                        <div style="display: flex; align-items: center; margin: 3px 0;">
+                            <div style="width: 16px; height: 16px; background: #9ca3af; border-radius: 3px; margin-right: 6px;"></div>
+                            <span>Unknown</span>
+                        </div>
+                    </div>
+
+                    <div style="margin-top: 12px; padding: 8px; background: #ecfdf5; border-radius: 6px;">
+                        <div style="font-weight: 600; margin-bottom: 8px; font-size: 12px; color: #065f46;">Filter Listings by School Zoning:</div>
+                        <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+                            <button id="filter-permitted-only" class="btn btn-sm" style="font-size: 11px; padding: 4px 8px; background: #22c55e; color: white; border: none; border-radius: 4px; cursor: pointer;">Permitted Only</button>
+                            <button id="filter-permitted-conditional" class="btn btn-sm" style="font-size: 11px; padding: 4px 8px; background: #f59e0b; color: white; border: none; border-radius: 4px; cursor: pointer;">Permitted + Conditional</button>
+                            <button id="filter-zoning-clear" class="btn btn-sm" style="font-size: 11px; padding: 4px 8px; background: #6b7280; color: white; border: none; border-radius: 4px; cursor: pointer;">Clear Filter</button>
+                        </div>
+                        <div id="zoning-filter-status" style="margin-top: 6px; font-size: 11px; color: #065f46;"></div>
+                    </div>
+                </div>
+                
+                <div class="feature-section">
                     <h3>Saved Listings</h3>
                     <div class="saved-listings-header">
                         <span id="saved-count" class="saved-count">0 saved</span>
@@ -157,6 +242,8 @@
     
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+    <script src="https://unpkg.com/protobufjs@7.2.5/dist/protobuf.min.js"></script>
+    <script src="https://unpkg.com/leaflet.vectorgrid@1.3.0/dist/Leaflet.VectorGrid.bundled.js"></script>
     <script src="app.js"></script>
 </body>
 </html>

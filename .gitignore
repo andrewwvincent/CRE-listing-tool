@@ -1,0 +1,40 @@
+# Node.js
+node_modules/
+package.json
+package-lock.json
+
+# Data processing scripts (not needed for runtime)
+fetch_zoning.js
+clip_zoning_tiles.js
+extract_zone_types.js
+fetch_plu_data.js
+classify_school_permissions.js
+test_api_call.js
+
+# Intermediate/backup data files
+zone_types.json
+zone_plu_raw.json
+austin_area_zoning_original.geojson
+austin_zoning.geojson
+building_footprints.geojson
+building_footprints_updated.geojson
+zoning_test_sample.geojson
+sample_feature.json
+
+# Planning documents (keep PROJECT_CONTEXT.md)
+README_BUILDING_FOOTPRINTS.md
+README_PARCEL_FETCHER.md
+SATELLITE_ANALYSIS_PLAN.md
+ZONING_PLU_IMPLEMENTATION_PLAN.md
+
+# Other
+.claude/
+Heatmap App/
+nul
+requirements.txt
+trilogy_listings.xlsx
+trilogy_listings_manifest.json
+*.pyc
+__pycache__/
+.DS_Store
+Thumbs.db
