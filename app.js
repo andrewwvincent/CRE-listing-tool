@@ -4,10 +4,6 @@ let listings = [];
 let searchMarker = null;
 let savedListings = [];
 let currentListing = null;
-let parcelLayer = null;
-let buildingBoundaries = {};
-let publicHeatmapLayer = null;
-let privateHeatmapLayer = null;
 let demographicHeatmapES = null;
 let demographicHeatmapESPlus = null;
 let demographicScoreData = {};
@@ -62,7 +58,7 @@ function loadListings() {
                 }));
             console.log(`Loaded ${listings.length} listings from Trilogy data`);
             populateStateDropdown();
-            loadBuildingBoundaries();
+            displayMarkers();
         },
         error: function(error) {
             console.error('Error loading CSV:', error);
@@ -95,101 +91,6 @@ function formatSize(size) {
     const numSize = parseFloat(size);
     if (isNaN(numSize)) return 'N/A';
     return `${numSize.toLocaleString('en-US')} sq ft`;
-}
-
-function loadBuildingBoundaries() {
-    fetch('building_footprints_updated.geojson')
-        .then(response => response.json())
-        .then(data => {
-            data.features.forEach(feature => {
-                const listingName = feature.properties.listing_name;
-                if (!buildingBoundaries[listingName]) {
-                    buildingBoundaries[listingName] = [];
-                }
-                buildingBoundaries[listingName].push(feature);
-            });
-            console.log(`Loaded building boundaries for ${Object.keys(buildingBoundaries).length} listings`);
-            displayMarkers();
-        })
-        .catch(error => {
-            console.error('Error loading building boundaries:', error);
-            displayMarkers();
-        });
-}
-
-function loadHeatmaps() {
-    fetch('combined_relative_all_public.geojson')
-        .then(response => response.json())
-        .then(data => {
-            console.log(`Loading public heatmap with ${data.features.length} features`);
-            publicHeatmapLayer = L.geoJSON(data, {
-                style: function(feature) {
-                    return {
-                        fillColor: feature.properties.comboRelativeColor || '#cccccc',
-                        weight: 0,
-                        opacity: 0,
-                        color: 'transparent',
-                        fillOpacity: 0.5
-                    };
-                },
-                onEachFeature: function(feature, layer) {
-                    if (feature.properties) {
-                        layer.bindPopup(`
-                            <div class="popup-title">Public Heatmap</div>
-                            <div class="popup-address">${feature.properties.countyName || 'Unknown County'}</div>
-                            <div class="popup-address">GEOID: ${feature.properties.GEOID || 'N/A'}</div>
-                        `);
-                    }
-                }
-            });
-            console.log('Loaded public heatmap successfully');
-        })
-        .catch(error => console.error('Error loading public heatmap:', error));
-    
-    fetch('combined_relative_all_private.geojson')
-        .then(response => response.json())
-        .then(data => {
-            console.log(`Loading private heatmap with ${data.features.length} features`);
-            privateHeatmapLayer = L.geoJSON(data, {
-                style: function(feature) {
-                    return {
-                        fillColor: feature.properties.comboRelativeColor || '#cccccc',
-                        weight: 0,
-                        opacity: 0,
-                        color: 'transparent',
-                        fillOpacity: 0.5
-                    };
-                },
-                onEachFeature: function(feature, layer) {
-                    if (feature.properties) {
-                        layer.bindPopup(`
-                            <div class="popup-title">Private Heatmap</div>
-                            <div class="popup-address">${feature.properties.countyName || 'Unknown County'}</div>
-                            <div class="popup-address">GEOID: ${feature.properties.GEOID || 'N/A'}</div>
-                        `);
-                    }
-                }
-            });
-            console.log('Loaded private heatmap successfully');
-        })
-        .catch(error => console.error('Error loading private heatmap:', error));
-}
-
-
-function togglePublicHeatmap(show) {
-    if (show && publicHeatmapLayer) {
-        map.addLayer(publicHeatmapLayer);
-    } else if (publicHeatmapLayer) {
-        map.removeLayer(publicHeatmapLayer);
-    }
-}
-
-function togglePrivateHeatmap(show) {
-    if (show && privateHeatmapLayer) {
-        map.addLayer(privateHeatmapLayer);
-    } else if (privateHeatmapLayer) {
-        map.removeLayer(privateHeatmapLayer);
-    }
 }
 
 // Demographic Heatmap Functions
@@ -343,7 +244,7 @@ async function loadDemographicHeatmapsForState(stateCode) {
     // Refresh heatmap display
     refreshDemographicHeatmaps();
     
-    console.log(`✓ Loaded ${counties.length} counties for ${stateCode} (${Object.keys(demographicScoreData).length} block groups)`);
+    console.log(`Loaded ${counties.length} counties for ${stateCode} (${Object.keys(demographicScoreData).length} block groups)`);
 }
 
 async function loadDemographicDataForCounty(stateCode, countyCode, countyName) {
@@ -402,7 +303,7 @@ async function loadDemographicDataForCounty(stateCode, countyCode, countyName) {
         });
         
         loadedDemographicCounties.add(countyCode);
-        console.log(`  ✓ ${countyName}: ${scoresData.length} block groups (ES max: ${maxES.toFixed(0)}, ES+ max: ${maxESPlus.toFixed(0)}, WS max: ${maxWS.toFixed(0)})`);
+        console.log(`  Loaded ${countyName}: ${scoresData.length} block groups (ES max: ${maxES.toFixed(0)}, ES+ max: ${maxESPlus.toFixed(0)}, WS max: ${maxWS.toFixed(0)})`);
         
     } catch (error) {
         console.error(`Error loading demographic data for ${countyName}:`, error);
@@ -865,69 +766,11 @@ function hideInfoPanel() {
     infoPanel.classList.add('hidden');
 }
 
-
-function clearParcelLayer() {
-    if (parcelLayer) {
-        map.removeLayer(parcelLayer);
-        parcelLayer = null;
-    }
-}
-
 function highlightParcel(lat, lon, listing = null) {
-    clearParcelLayer();
-    
-    if (!listing) return;
-    
-    const listingName = listing['Listing Name'];
-    const boundaries = buildingBoundaries[listingName];
-    
-    if (boundaries && boundaries.length > 0) {
-        const layers = [];
-        
-        boundaries.forEach(feature => {
-            if (feature.geometry.type === 'Polygon') {
-                const coords = feature.geometry.coordinates[0].map(coord => [coord[1], coord[0]]);
-                
-                const polygon = L.polygon(coords, {
-                    color: '#ef4444',
-                    weight: 3,
-                    fillColor: '#ef4444',
-                    fillOpacity: 0.2,
-                    dashArray: '5, 5'
-                }).addTo(map);
-                
-                layers.push(polygon);
-            }
-        });
-        
-        if (layers.length > 0) {
-            parcelLayer = L.layerGroup(layers).addTo(map);
-            
-            const source = boundaries[0].properties.source || 'Data';
-            const buildingCount = boundaries.length;
-            
-            layers[0].bindPopup(`
-                <div class="popup-title">Property Boundaries</div>
-                <div class="popup-address">${buildingCount} building(s) from ${source}</div>
-            `).openPopup();
-        }
-    } else {
-        const size = parseSize(listing.Size);
-        const radius = Math.max(15, Math.min(Math.sqrt(size / Math.PI), 60));
-        
-        parcelLayer = L.circle([lat, lon], {
-            radius: radius,
-            color: '#3b82f6',
-            weight: 2,
-            fillColor: '#3b82f6',
-            fillOpacity: 0.15,
-            dashArray: '3, 3'
-        }).addTo(map);
-        
-        parcelLayer.bindPopup(`
-            <div class="popup-title">Approximate Area</div>
-            <div class="popup-address">~${Math.round(radius * 2)}m diameter (no boundary data)</div>
-        `);
+    // Simplified - no parcel/building boundary highlighting
+    // Just focus the map on the location
+    if (lat && lon) {
+        map.setView([lat, lon], 16);
     }
 }
 
